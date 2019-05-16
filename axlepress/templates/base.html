@@ -1,0 +1,27 @@
+<!-- templates/base.html -->
+{% load staticfiles %}
+{% load static %}
+
+<html>
+
+<head lang="zh-cn">
+    <meta charset="UTF-8">
+    {% block title_block %}
+    <title>车轴受力分析</title>
+    {% endblock %}
+    <link rel="stylesheet" href="{% static 'style/main.css' %}">
+</head>
+
+<body>
+
+    <a href="{% url 'home' %}">主页</a> | <a href="{% url 'main' %}">受力展示</a> | <a href="{% url 'config' %}">车次配置</a> | <a href="{%  url 'about' %}">关于</a>
+    <hr/>
+
+
+{% block body_block %}
+{% endblock %}
+
+<hr/>
+copyright@2019....
+</body>
+</html>

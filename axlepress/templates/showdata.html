@@ -1,0 +1,626 @@
+{% extends 'base.html' %}
+
+{% block title_block %}
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>轮轴受力数据分析报告</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!--<meta http-equiv="refresh" content="1">-->
+    {% load static %}
+    <!--<link rel="stylesheet" type="text/css" media="screen" href="{% static 'style/main.css' %}"/>-->
+    <script src="{% static  'Chartjs/Chart.bundle.js' %}"></script>
+    <script src="{% static 'js/jquery-3.3.1.js' %}"></script>
+    <style>
+        #axlepress{
+        background-color: lightyellow;
+        border: 1px solid lightgreen;
+    }
+
+    </style>
+    <script language="JavaScript">
+        $(document).ready(function(){
+            if ( '{{beginTime}}'==""){
+                $initialIntervalTime = 10 * 60 * 1000;
+                $currTime=new Date().getTime()-24*60*60*1000;
+                $laTime = new Date().getTime();
+                $diffTimeWithZoneTime = new Date().getTimezoneOffset();         //minute
+                $beginTime = new Date($currTime - $diffTimeWithZoneTime * 60 * 1000 - $initialIntervalTime).toJSON().substr(0, 19);
+                $lastTime = new Date($laTime - $diffTimeWithZoneTime * 60 * 1000 - $initialIntervalTime).toJSON().substr(0, 19);
+                $('input[id=currDatetime]').val( $beginTime);
+                $('input[id=lastDatetime]').val( $lastTime);
+            }
+            else {
+                $beginTime ='{{beginTime}}';
+                $lastTime='{{ lastTime }}';
+                $('input[id=currDatetime]').val($beginTime);
+                $('input[id=lastDatetime]').val($lastTime);
+            }
+
+            if ( '{{ interval }}' =='' ) {
+                $duration = ''
+            }else{
+                $duration = '{{ interval }}'
+            }
+            $('input[id=duration]').val($duration);
+
+            if ( '{{ trainNo }}' =='' ) {
+                $trainNo = ''
+            }else{
+                $trainNo = '{{ trainNo }}'
+            }
+            $('input[id=trainNo]').val($trainNo);
+
+            if ( '{{ carriageNo }}' =='' ) {
+                $carriageNo = ''
+            }else{
+                $carriageNo = '{{ carriageNo }}'
+            }
+            $('input[id=carriageNo]').val($carriageNo);
+
+            if ( '{{ axleNo }}' =='' ) {
+                $axleNo = ''
+            }else{
+                $axleNo = '{{ axleNo }}'
+            }
+            $('input[id=axleNo]').val($axleNo)
+
+            $('#axlepress').toggle('{{ promptinfo }}' =='false');
+            $('#fourier').toggle('{{ promptinfo }}' =='false');
+
+
+            if('{{wradio1}}'==''&&'{{wradio2}}'==''){
+                document.getElementById('radiobutton2').checked=true;
+                document.getElementById('radiobutton').value=1;
+            }
+            else if('{{wradio1}}'=='false'&&'{{wradio2}}'=='true'){
+                document.getElementById('radiobutton2').checked=true;
+            }
+            else if('{{wradio1}}'=='true'&&'{{wradio2}}'=='false'){
+                document.getElementById('radiobutton1').checked=true;
+            }
+            if(document.getElementById('radiobutton').value=='0'){
+                document.getElementById('currDatetime').disabled='disabled';
+                document.getElementById('lastDatetime').disabled='disabled';
+            }
+            else {
+                document.getElementById('currDatetime').disabled=false;
+                document.getElementById('lastDatetime').disabled=false;
+            }
+
+        if('{{promptinfo}}'=='false'){
+                document.getElementById('d1').style.display="block";
+                document.getElementById('fourier1').style.display="block";
+                document.getElementById('fourier2').style.display="block";
+                document.getElementById('fourier3').style.display="block";
+                document.getElementById('fourier4').style.display="block";
+            }
+        else{
+            document.getElementById('d1').style.display="none";
+            document.getElementById('fourier1').style.display="none";
+            document.getElementById('fourier2').style.display="none";
+            document.getElementById('fourier3').style.display="none";
+            document.getElementById('fourier4').style.display="none";
+        }
+        });
+
+    </script>
+{% endblock %}
+
+{% block body_block %}
+
+    <p align="center">
+
+    <form action="/refresh" method="post" >
+        {% csrf_token %}
+        车次：<input id='trainNo' type="text" name="trainNo">
+        车厢：<input id='carriageNo' type="text" name="carriageNo">
+        轴号：<input id='axleNo' type="text" name="axleNo">
+        <br>
+        开始日期：<input id='currDatetime'  type="datetime-local"  step="01" name="beginDateTime" min="1990-01-01T00:00" max="2100-12-31T23:59" >
+        结束日期：<input id='lastDatetime' type="datetime-local" step="01" name="lastDateTime" min="1990-01-01T00:00" max="2100-12-31T23:59">
+        时长：<input id='duration' type="text" name="duration" value="">秒
+        <br>
+        <label><input type="radio" value="0" id="radiobutton1" name="pathType" >实时</label>
+        <input type="hidden" value="{{radio}}" id="radiobutton" name="radiobutton">
+        <label><input type="radio" value="1" id="radiobutton2" name="pathType" >单次</label>
+        <input type="submit" value="提交" name="submit1">
+        <input type="button" value="结束" onclick="finish()">
+    </form>
+    <div id="d1">
+        <p id="p1" style="color: black">最大值：{{maxValue}}&nbsp;&nbsp;&nbsp;&nbsp;最小值：{{minValue}}</p>
+        <p id="p2" style="color: black">一组平均值：{{avgValue1}}&nbsp;&nbsp;&nbsp;&nbsp;
+        二组平均值：{{avgValue2}}&nbsp;&nbsp;&nbsp;&nbsp;
+        三组平均值：{{avgValue3}}&nbsp;&nbsp;&nbsp;&nbsp;
+        四组平均值：{{avgValue4}}</p>
+    </div>
+
+    {% if messages %}
+    <script>
+        {% for msg in messages %}
+            alert('{{ msg.message }}');
+        {% endfor %}
+    </script>
+    {% endif %}
+
+    </p>
+    <canvas id="axlepress" ></canvas>
+    <canvas id="fourier1"> </canvas>
+    <canvas id="fourier2"> </canvas>
+    <canvas id="fourier3"> </canvas>
+    <canvas id="fourier4"> </canvas>
+
+
+
+    <script language="JavaScript">
+       var pathTypeArr=document.getElementsByName("pathType");
+       pathTypeArr[0].onclick=function(){
+           var checkValue=pathTypeArr[0].value;
+           if (checkValue=='0'){
+               document.getElementById('currDatetime').disabled='disabled';
+               document.getElementById('lastDatetime').disabled='disabled';
+               document.getElementById('radiobutton').value=0;
+           }
+       };
+       pathTypeArr[1].onclick=function(){
+           var checkValue=pathTypeArr[1].value;
+           if (checkValue=='1'){
+               document.getElementById('currDatetime').disabled=false;
+               document.getElementById('lastDatetime').disabled=false;
+               document.getElementById('radiobutton').value=1;
+               document.getElementById('duration').value="";
+
+           }
+       };
+
+       function finish(){
+           document.getElementById('radiobutton').value=1;
+           document.getElementById('radiobutton2').checked=true;
+           document.getElementById('currDatetime').disabled=false;
+           document.getElementById('lastDatetime').disabled=false;
+           document.getElementById('duration').value="";
+       }
+
+        function myrefresh() {
+            //$promptinfo='{{promptinfo}}';
+            if(document.getElementById('radiobutton').value=='0'&&
+                    document.getElementById('trainNo').value!=''&&
+                    document.getElementById('carriageNo').value!=''&&
+                    document.getElementById('axleNo').value!=''
+                    //$promptinfo=='false'
+            ){
+                window.location.reload();
+            }
+            }
+        setTimeout('myrefresh()', 5000)
+
+    </script>
+
+    <script>
+
+		/**************************************时间格式化处理************************************/
+        function sub(obj){
+        obj=obj.toString();
+         obj=obj.substr(0,10);
+         return obj;
+        }
+        function getLocalTime(nS) {
+            return new Date(parseInt(nS) * 1000-3600*8*1000).toLocaleString().replace(/年|月/g, "-").replace(/日/g, " ");
+        }
+
+        (function () {
+		var arraylist = {{xdata}};
+		var arrs=new Array();
+		for ( var i = 0; i <arraylist.length; i++){
+			var s=arraylist[i];
+            s=sub(s);
+			var str=getLocalTime(s);
+			arrs.push(str);
+		}
+
+            'use strict';
+            var type = 'line';
+            var data = {
+                labels:arrs,
+                datasets: [
+                    {
+                        label: 'one',
+                        data: {{ydata1}},
+                        borderDash:[5,10] ,
+                        borderColor: 'red',
+                        borderWidth: 2,
+                        type: 'line',
+                        fill: false,
+                        backgroundColor: 'rgba(50,0,0,0.5)',  //['red','blue','green','skyblue','orange'],    //red, orange, yellow, green, steelblue, skyblue,rgba(red,blue,green,transparent)
+                        lineTension: 0,         //0：折线，默认为曲线
+                        pointStyle: 'rect',     //circle, cross, crossRot, dash, rect, rectRounded, rectRot, star, triangle
+                        pointRadius: 2
+                    },
+                    {
+                        label: 'two',
+                        data: {{ydata2}},
+                        borderColor: 'blue',
+                        borderWidth: 2,
+                        type: 'line',
+                        fill: true,
+                        backgroundColor: 'rgba(0,60,0,0.2)'  //['red','blue','green','skyblue','orange'],
+                    },
+                    {
+                        label: 'three',
+                        data: {{ydata3}},
+                        borderColor: 'yellow',
+                        borderWidth: 2,
+                        type: 'line',
+                        fill: true,
+                        backgroundColor: 'rgba(0,60,0,0.2)'  //['red','blue','green','skyblue','orange'],
+                    },
+                    {
+                        label: 'four',
+                        data: {{ydata4}},
+                        borderColor: 'green',
+                        borderWidth: 2,
+                        type: 'line',
+                        fill: true,
+                        backgroundColor: 'rgba(0,60,0,0.2)'  //['red','blue','green','skyblue','orange'],
+                    }
+                ]
+            };
+            var options = {
+                title: {
+                    display: {{ promptinfo }}=='true'?false:true,
+                    text: '轮轴受力分析报告',
+                    fontColor: 'black',
+                    fontSize: '24',
+                    position: 'top'             {# top, left, bottom, right #}
+                },
+                scales: {
+                    xAxes:[{
+                        gridLines:{
+                            display:false,
+                            color:"black"
+                        },
+                        scaleLabel:{
+                            display: true,
+                            labelString: "Time in Seconds",
+                            fontColor:"red"
+                        }
+                    }],
+
+                    yAxes: [{
+                        //stacked: true,
+                        ticks: {
+                            {#min:0,#}
+                            {#max:1500,#}
+                            suggestedMin: 0,
+                            suggestedMax: {{ maxValue }},
+                             stepSize: {{ maxValue }}/2.5,
+                            callback: function (value, index, values) {
+                                return value + 'N';
+                            }
+                        }
+                    }
+                    ]
+                },
+                legend: {
+                    position: 'top', {# top, left, bottom, right #}
+                    display: true
+                },
+                animation: {
+                    duration: 1000, {# millisecond #}
+                    easing: 'easeOutQuart'      //easeOutQuart, easeInBounce, ...
+                }
+            }
+
+            var ctx = document.getElementById('axlepress').getContext('2d');
+            var chart = new Chart(ctx, {
+                type: type,
+                data: data,
+                options: options
+            });
+
+        })();
+
+         (function () {
+            'use strict';
+            var type = 'line';
+            var data = {
+                labels:{{fourierx1}},
+                datasets: [
+                    {
+                        label: 'one',
+                        data: {{fouriery1}},
+                        borderDash:[5,10] ,
+                        borderColor: 'red',
+                        borderWidth: 2,
+                        type: 'line',
+                        fill: false,
+                        backgroundColor: 'rgba(50,0,0,0.5)',  //['red','blue','green','skyblue','orange'],    //red, orange, yellow, green, steelblue, skyblue,rgba(red,blue,green,transparent)
+                        lineTension: 0,         //0：折线，默认为曲线
+                        pointStyle: 'rect',     //circle, cross, crossRot, dash, rect, rectRounded, rectRot, star, triangle
+                        pointRadius: 2
+                    }
+                ]
+            };
+            var options = {
+                title: {
+                    display: {{ promptinfo }}=='true'?false:true,
+                    text: '傅里叶变换',
+                    fontColor: 'black',
+                    fontSize: '24',
+                    position: 'top'             {# top, left, bottom, right #}
+                },
+                scales: {
+                    xAxes:[{
+                        gridLines:{
+                            display:false,
+                            color:"black"
+                        },
+                        scaleLabel:{
+                            display: true,
+                            labelString: "Time in Seconds",
+                            fontColor:"red"
+                        }
+                    }],
+
+                    yAxes: [{
+                        //stacked: true,
+                        ticks: {
+                            {#min:0,#}
+                            {#max:1500,#}
+                            suggestedMin: 0,
+                            suggestedMax: {{ maxfouriery1 }},
+                             stepSize: {{ maxfouriery1 }},
+                            callback: function (value, index, values) {
+                                return value + 'Hz';
+                            }
+                        }
+                    }
+                    ]
+                },
+                legend: {
+                    position: 'top', {# top, left, bottom, right #}
+                    display: true
+                },
+                animation: {
+                    duration: 1000, {# millisecond #}
+                    easing: 'easeOutQuart'      //easeOutQuart, easeInBounce, ...
+                }
+            }
+
+            var ctx = document.getElementById('fourier1').getContext('2d');
+            var chart = new Chart(ctx, {
+                type: type,
+                data: data,
+                options: options
+            });
+
+        })();
+
+        (function () {
+            'use strict';
+            var type = 'line';
+            var data = {
+                labels:{{fourierx2}},
+                datasets: [
+                    {
+                        label: 'one',
+                        data: {{fouriery2}},
+                        borderDash:[5,10] ,
+                        borderColor: 'blue',
+                        borderWidth: 2,
+                        type: 'line',
+                        fill: false,
+                        backgroundColor: 'rgba(50,0,0,0.5)',  //['red','blue','green','skyblue','orange'],    //red, orange, yellow, green, steelblue, skyblue,rgba(red,blue,green,transparent)
+                        lineTension: 0,         //0：折线，默认为曲线
+                        pointStyle: 'rect',     //circle, cross, crossRot, dash, rect, rectRounded, rectRot, star, triangle
+                        pointRadius: 2
+                    }
+                ]
+            };
+            var options = {
+                title: {
+                    display: {{ promptinfo }}=='true'?false:true,
+                    text: '傅里叶变换',
+                    fontColor: 'black',
+                    fontSize: '24',
+                    position: 'top'             {# top, left, bottom, right #}
+                },
+                scales: {
+                    xAxes:[{
+                        gridLines:{
+                            display:false,
+                            color:"black"
+                        },
+                        scaleLabel:{
+                            display: true,
+                            labelString: "Time in Seconds",
+                            fontColor:"red"
+                        }
+                    }],
+
+                    yAxes: [{
+                        //stacked: true,
+                        ticks: {
+                            {#min:0,#}
+                            {#max:1500,#}
+                            suggestedMin: 0,
+                            suggestedMax: {{ maxfouriery2 }},
+                             stepSize: {{ maxfouriery2 }},
+                            callback: function (value, index, values) {
+                                return value + 'Hz';
+                            }
+                        }
+                    }
+                    ]
+                },
+                legend: {
+                    position: 'top', {# top, left, bottom, right #}
+                    display: true
+                },
+                animation: {
+                    duration: 1000, {# millisecond #}
+                    easing: 'easeOutQuart'      //easeOutQuart, easeInBounce, ...
+                }
+            }
+
+            var ctx = document.getElementById('fourier2').getContext('2d');
+            var chart = new Chart(ctx, {
+                type: type,
+                data: data,
+                options: options
+            });
+
+        })();
+
+        (function () {
+            'use strict';
+            var type = 'line';
+            var data = {
+                labels:{{fourierx3}},
+                datasets: [
+                    {
+                        label: 'one',
+                        data: {{fouriery3}},
+                        borderDash:[5,10] ,
+                        borderColor: 'green',
+                        borderWidth: 2,
+                        type: 'line',
+                        fill: false,
+                        backgroundColor: 'rgba(50,0,0,0.5)',  //['red','blue','green','skyblue','orange'],    //red, orange, yellow, green, steelblue, skyblue,rgba(red,blue,green,transparent)
+                        lineTension: 0,         //0：折线，默认为曲线
+                        pointStyle: 'rect',     //circle, cross, crossRot, dash, rect, rectRounded, rectRot, star, triangle
+                        pointRadius: 2
+                    }
+                ]
+            };
+            var options = {
+                title: {
+                    display: {{ promptinfo }}=='true'?false:true,
+                    text: '傅里叶变换',
+                    fontColor: 'black',
+                    fontSize: '24',
+                    position: 'top'             {# top, left, bottom, right #}
+                },
+                scales: {
+                    xAxes:[{
+                        gridLines:{
+                            display:false,
+                            color:"black"
+                        },
+                        scaleLabel:{
+                            display: true,
+                            labelString: "Time in Seconds",
+                            fontColor:"red"
+                        }
+                    }],
+
+                    yAxes: [{
+                        //stacked: true,
+                        ticks: {
+                            {#min:0,#}
+                            {#max:1500,#}
+                            suggestedMin: 0,
+                            suggestedMax: {{ maxfouriery3 }},
+                             stepSize: {{ maxfouriery3 }},
+                            callback: function (value, index, values) {
+                                return value + 'Hz';
+                            }
+                        }
+                    }
+                    ]
+                },
+                legend: {
+                    position: 'top', {# top, left, bottom, right #}
+                    display: true
+                },
+                animation: {
+                    duration: 1000, {# millisecond #}
+                    easing: 'easeOutQuart'      //easeOutQuart, easeInBounce, ...
+                }
+            }
+
+            var ctx = document.getElementById('fourier3').getContext('2d');
+            var chart = new Chart(ctx, {
+                type: type,
+                data: data,
+                options: options
+            });
+
+        })();
+
+        (function () {
+            'use strict';
+            var type = 'line';
+            var data = {
+                labels:{{fourierx4}},
+                datasets: [
+                    {
+                        label: 'one',
+                        data: {{fouriery4}},
+                        borderDash:[5,10] ,
+                        borderColor: 'brown',
+                        borderWidth: 2,
+                        type: 'line',
+                        fill: false,
+                        backgroundColor: 'rgba(50,0,0,0.5)',  //['red','blue','green','skyblue','orange'],    //red, orange, yellow, green, steelblue, skyblue,rgba(red,blue,green,transparent)
+                        lineTension: 0,         //0：折线，默认为曲线
+                        pointStyle: 'rect',     //circle, cross, crossRot, dash, rect, rectRounded, rectRot, star, triangle
+                        pointRadius: 2
+                    }
+                ]
+            };
+            var options = {
+                title: {
+                    display: {{ promptinfo }}=='true'?false:true,
+                    text: '傅里叶变换',
+                    fontColor: 'black',
+                    fontSize: '24',
+                    position: 'top'             {# top, left, bottom, right #}
+                },
+                scales: {
+                    xAxes:[{
+                        gridLines:{
+                            display:false,
+                            color:"black"
+                        },
+                        scaleLabel:{
+                            display: true,
+                            labelString: "Time in Seconds",
+                            fontColor:"red"
+                        }
+                    }],
+
+                    yAxes: [{
+                        //stacked: true,
+                        ticks: {
+                            {#min:0,#}
+                            {#max:1500,#}
+                            suggestedMin: 0,
+                            suggestedMax: {{ maxfouriery4 }},
+                             stepSize: {{ maxfouriery4 }},
+                            callback: function (value, index, values) {
+                                return value + 'Hz';
+                            }
+                        }
+                    }
+                    ]
+                },
+                legend: {
+                    position: 'top', {# top, left, bottom, right #}
+                    display: true
+                },
+                animation: {
+                    duration: 1000, {# millisecond #}
+                    easing: 'easeOutQuart'      //easeOutQuart, easeInBounce, ...
+                }
+            }
+
+            var ctx = document.getElementById('fourier4').getContext('2d');
+            var chart = new Chart(ctx, {
+                type: type,
+                data: data,
+                options: options
+            });
+
+        })();
+    </script>
+
+{% endblock %}

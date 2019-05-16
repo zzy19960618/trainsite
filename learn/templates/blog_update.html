@@ -1,0 +1,10 @@
+<!DOCTYPE html>
+{% extends 'learnbase.html' %}
+
+{% block content %}
+    <h1>Edit Message</h1>
+    <form action="", method="post"> {% csrf_token %}
+        {{ form.as_p }}
+        <input type="submit", value="update">
+    </form>
+{% endblock %}

@@ -1,0 +1,132 @@
+{% extends 'base.html' %}
+
+{% block title_block %}
+    <title>列车车次配置</title>
+    {% load static %}
+    <script src="{% static 'js/jquery-3.3.1.js' %}"></script>
+
+    <script>
+
+    $(document).ready(function(){
+        if ( '{{ startT }}' ===''){
+            $initialIntervalTime = 12 *60 * 60 * 1000;             // millisecond, 10hours
+            $currTime = new Date().getTime();
+            $diffTimeWithZoneTime = new Date().getTimezoneOffset();         //minute
+            $startT = new Date($currTime - $diffTimeWithZoneTime * 60 * 1000 + $initialIntervalTime).toJSON().substr(0, 16);
+        }else {
+            $startT =  '{{ startT }}';
+        }
+        console.log("JS.The begin time:"+$startT);
+        //$('input[type=datetime-local]').val( $startT);
+        $('#startT').val($startT);
+
+        if ( '{{ endT }}' ===''){
+            $initialIntervalTime = 24 * 60 * 60 * 1000;             // millisecond, 1day
+            $currTime = new Date().getTime();
+            $diffTimeWithZoneTime = new Date().getTimezoneOffset();         //minute
+            $endT = new Date($currTime - $diffTimeWithZoneTime * 60 * 1000 + $initialIntervalTime).toJSON().substr(0, 16);
+        }else {
+            $endT =  '{{ endT }}';
+        }
+        console.log("JS.The end time:"+$endT);
+        //$('input[type=datetime-local]').val( $endT);
+        $('#endT').val($endT);
+
+        console.log('{{ error }}')
+        $('#result').toggle('{{ error }}' =='');
+
+    });
+
+    //提交数据检查
+    function check() {
+
+        var $trainNo =$.trim($('#trainNo').val());
+        var $startP = $.trim($('#startP').val());
+        var $endP = $.trim($('#endP').val());
+        var $carriageList = $('#carriageNo').val().split(/[\s]/);         //document.getElementById('carriageNo').innerHTML;
+        console.log('a:'+$trainNo+'a:'+$startP+'a:'+$endP);
+        console.log("The carriageList: " + $carriageList +" ");
+
+        if ( $trainNo ==='' || $startP === ''|| $endP === '' ){
+            alert("输入信息不完整：车次"+$trainNo+"、始发站"+$startP+"、终点站"+$endP+"都不能为空");
+            return false;
+        }else{
+            var promptstr = "输入信息如下：\n车次："+$trainNo+"； 始发站："+$startP+"； 终点站："+$endP+"。\n 挂载车厢："+$carriageList+"。\n请确认数据是否完整、准确？";
+            $confirm = confirm(promptstr,"否","是");
+            return $confirm === true;
+        }
+
+    }
+</script>
+
+{% endblock %}
+
+
+{% block body_block %}
+
+
+<form action="/config" method="post" onsubmit="return check()">
+    {% csrf_token %}
+    <table align="center" >
+        <tr>
+            <td>
+                <label for="trainNo" >列车车次：</label>
+            </td>
+            <td>
+                <input type="text" id="trainNo" name="trainNo" size="10" value="{{ trainNo}}">  <label for="carriageNo">挂载车厢：</label>
+            </td>
+            <td rowspan='5'>
+              <textarea  id="carriageNo" name="carriageNo" cols="10" rows="10" >{{ carriageNo }}</textarea>
+            </td>
+
+        </tr>
+        <tr>
+            <td>
+                <label for="startP">起 始 站：</label>
+            </td>
+            <td>
+                <input id="startP" type="text" name="startP" size="10" value="{{ startP }}">
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <label for="endP"> 终 点 站：</label>
+            </td>
+            <td>
+                <input id="endP" type="text" name="endP" size="10" value="{{ endP }}"><br>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <label for="startT">开始时间：</label>
+            </td>
+            <td>
+                <input type="datetime-local" name="startT" id="startT" value="{{ startT }}"><br>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <label for="endT">结束时间：</label>
+            </td>
+            <td>
+                <input type="datetime-local" name="endT" id="endT" value="{{ endT }}"><br>
+            </td>
+        </tr>
+        <tr>
+            <td colspan="3" align="center">
+                <p>{{ error }}</p>
+            </td>
+        </tr>
+        <tr>
+            <td colspan="3" align="center">
+                <input type="reset" value="清空" >
+                <input type="submit" value="提交"  >
+            </td>
+        </tr>
+    </table>
+
+</form>
+
+    <p id="result" >您在 {{ currentTime }} 增加的车次是：{{ trainNo }}，始发站：{{startP}},终点站：{{endP }}，开行时间：{{ startT }}，结束时间：{{ endT }}，挂载车厢：{{ carriageNo }}</p>
+
+{% endblock %}

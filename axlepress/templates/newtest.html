@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>带时间轴的折线图</title>
+    <script src="//cdn.bootcss.com/echarts/3.4.0/echarts.min.js"></script>
+</head>
+<body>
+<div id="chart" style="width: 100%;height: 500px;"></div>
+<script type="text/javascript">			// 基于准备好的dom，初始化echarts实例
+     var myChart = echarts.init(document.getElementById('chart'));
+     // 指定图表的配置项和数据
+    option = {
+        title : {
+            text: '压力传感测试',
+            subtext: '压力传感测试',
+            x: 'center',
+            align: 'right'
+        },
+        grid: {
+            bottom: 80
+        },
+        toolbox: {
+            feature: {
+                saveAsImage: {}
+            }
+            },
+        tooltip : {
+            trigger: 'axis',
+            axisPointer: {
+                animation: false
+            }
+            },
+        dataZoom: [
+            {
+                show: true,
+                realtime: true,
+                start: 65,
+                end: 85
+            },
+            {
+                type: 'inside',
+                realtime: true,
+                start: 65,
+                end: 85
+            }
+            ],
+//x轴时间轴
+    xAxis : [
+        {
+            type : 'category',
+            data : [
+                '2009-6-12 2:00:00', '2009-6-12 3:00:00',
+                '2009-6-12 4:00:00', '2009-6-12 5:00:00',
+                '2009-6-12 6:00:00', '2009-6-12 7:00:00',
+                '2009-6-12 8:00:00', '2009-6-12 9:00:00',
+                '2009-6-12 10:00:00', '2009-6-12 11:00:00'
+            ].map(function (str) {
+                return str.replace(' ', '\n')
+            })
+        }
+        ],
+        yAxis: [
+            {
+                name: '压力传感测试',
+                type: 'value'
+            }
+            ],
+//y轴
+    series: [
+        {
+            name:'压力',
+            type:'line',
+            animation: false,
+            areaStyle: {
+                normal: {}
+                },
+            lineStyle: {
+                normal: {
+                    width: 1
+                }
+                },
+            data:[
+                100,20,300,40,300,20,50,360,80,100
+            ]
+        }
+        ]
+    };			// 使用刚指定的配置项和数据显示图表。
+    myChart.setOption(option);			//自适应
+    window.onresize = myChart.resize;
+</script>
+</body>
+</html>

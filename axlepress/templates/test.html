@@ -1,0 +1,9 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    <h1>列车车次配置</h1>
+    <form action="config", method="POST"> {% csrf_token %}
+        {{ form.as_p }}
+        <input type="submit", value="保存">
+    </form>
+{% endblock %}

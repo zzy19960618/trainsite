@@ -1,0 +1,14 @@
+<!-- templates/home.html -->
+
+{% extends 'learnbase.html' %}
+
+{% block content %}
+    <h1>Home page.</h1>
+    <ul>
+    {% for post in object_list %}
+        <li> <a href="{% url 'updateBlog' post.pk %}"> {{ post.title }}</a></li>
+        <p> 作者：{{ post.author }}，内容：{{ post.text }}</p>
+    {% endfor %}
+    </ul>
+{% endblock %}
+

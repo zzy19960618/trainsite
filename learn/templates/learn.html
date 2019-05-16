@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="zh-cmn-Hans">
+<head>
+    <meta charset="utf-8"/>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>车轴压力报告</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    {% load static %}
+    <link rel="stylesheet" type="text/css" media="screen" href="{% static 'style/main.css' %}"/>
+    <script src="{% static  'Chartjs/Chart.bundle.js' %}"></script>
+</head>
+<body>
+    <h1>ok?</h1>
+    <canvas id="axlepress">
+        图表区
+    </canvas>
+
+
+    <script>
+        (function () {
+            'use strict';
+            var type ='line';           //line, bar, radar, pie, doughnut, horizontalBar, ...
+            var data ={
+                labels:[2013,2014,2015,2016,2017],
+                datasets:[
+                    {
+                        label: 'xxx',
+                        data:[100,200,300,800,1000],
+                        borderColor: 'red',
+                        borderWidth: 2,
+                        //type: 'line',
+                        fill: true,
+                        backgroundColor: 'rgba(50,0,0,0.5)',  //['red','blue','green','skyblue','orange'],    //red, orange, yellow, green, steelblue, skyblue,rgba(red,blue,green,transparent)
+                        lineTension: 0,         //0：折线，默认为曲线
+                        pointStyle: 'rect',     //circle, cross, crossRot, dash, rect, rectRounded, rectRot, star, triangle
+                        pointRadius: 2,
+                        yAxisID: 'data1-axle'
+                    },
+                    {
+                        label: 'yyy',
+                        data:[80,90,100,120,200],
+                        borderColor: 'blue',
+                        borderWidth: 2,
+                        fill: true,
+                        backgroundColor: 'rgba(0,128,0,0.5)',  //['red','blue','green','skyblue','orange'],
+                        yAxisID:'data2-axle'
+                    }
+                ]
+            };
+            var options = {
+                    title: {
+                        display: true,
+                        text: '轴受力报告',
+                        fontColor: 'black',
+                        fontSize: '24',
+                        position: 'top'             {# top, left, bottom, right #}
+                    },
+                    scales:{
+                        xAxes:[{
+                            stacked: true
+                        }],             //对Bar图，会形成叠加效果。
+
+                        yAxes:[{% comment %}{
+                            stacked: true,
+                            ticks:{
+                                {#min:0,#}
+                                {#max:1500,#}
+                                suggestedMin:0,
+                                suggestedMax:1500,
+                                stepSize:200,                   {# 属性名区分大小写 #}
+                                callback: function (value, index, values) {
+                                    return value + '人';
+                                }
+                            }
+                            },{% endcomment %}
+                            {
+                                id:'data1-axle',
+                                type: 'linear',
+                                position: 'left',
+                                ticks:{
+                                    suggestedMin:0,
+                                    suggestedMax:1500
+                                }
+                            },
+                            {
+                                id:'data2-axle',
+                                type: 'linear',
+                                position: 'right',
+                                ticks:{
+                                    suggestedMin:0,
+                                    suggestedMax:200
+                                },
+                                gridLines:{
+                                    display: false
+                                }
+                            }
+                            ]
+                    },
+                    legend:{
+                        position: 'top',        {# top, left, bottom, right #}
+                        display: true
+                    },
+                    animation:{
+                        duration: 1000,         {# millisecond #}
+                        easing: 'easeOutQuart'      //easeOutQuart, easeInBounce, ...
+                    },
+                    // cutoutPercentage: 80  //对pie或doughnut有效
+                };
+            var ctx = document.getElementById('axlepress').getContext('2d');
+            var chart = new Chart(ctx, {
+                type: type,
+                data: data,
+                options: options
+            });
+        })();
+    </script>
+    ===
+</body>
+</html>
